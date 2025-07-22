@@ -1,1 +1,29 @@
+# Python virtual environment
 venv/
+
+# Environment variables
+.env
+
+# Python cache files
+__pycache__/
+backend/__pycache__/
+frontend/__pycache__/
+
+# IDE/editor settings (optional, good practice)
+.vscode/
+.idea/
+
+# OS files (optional)
+.DS_Store
+Thumbs.db
+
+# Log files (optional)
+*.log
+
+# Python compiled files
+*.pyc
+*.pyo
+*.pyd
+
+# Jupyter checkpoints if using notebooks
+.ipynb_checkpoints/
