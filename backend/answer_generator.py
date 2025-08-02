@@ -1,35 +1,41 @@
 import requests
 import os
 from dotenv import load_dotenv
+import json
 
 load_dotenv()
 
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
-MODEL = "mistralai/mistral-7b-instruct"  
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
+MODEL = "llama3-70b-8192"  
 
 def generate_question(topic: str, level: str ="medium",previous_questions: list = None) -> dict:
-    if not OPENROUTER_API_KEY:
+    if not GROQ_API_KEY:
         raise ValueError(" API key not set. Please set OPENROUTER_API_KEY.")
 # to avoid repeated question generation
     avoid_text=""
     if previous_questions:
         recent_questions=previous_questions[-3:]
-        avoid_text=f"\\Avoid generating question simalar to these recent ones:{recent_questions}"
-    
+        avoid_text = "\nAvoid generating questions similar to these:\n"
+        for q in recent_questions:
+            avoid_text += f"- {q}\n"
     prompt = (
-        f"Generate one {level} level aptitude multiple-choice question on the topic '{topic}'. "
-        f"Make sure the question is unique and different from typical basic questions.{avoid_text}\n"
-        "IMPORTANT: Double-check your answer calculation before responding.\n"
-        "Format your response strictly as a **valid JSON object** with the following keys: "
-        "'question'(string),'options' (an object with keys 'A', 'B', 'C', 'D'), 'answer' (string with one of 'A', 'B', 'C', 'D'), and 'explanation' (string explaining the correct answer)."
-        "Verify your math calculations are correct. Do not include any text outside the JSON object."
+    f"You are an expert aptitude test maker. Generate one {level} level *mathematically correct* multiple-choice question on the topic '{topic}'.\n"
+    "- The question should test logical or numerical reasoning, not trivia.\n"
+    "- Use real-life, exam-style questions. Keep the wording concise.\n"
+    "- Double-check all calculations and ensure the correct answer is accurate.\n"
+    "- Avoid questions similar to: {recent_questions}.\n\n"
+    "Strictly format your response as a VALID JSON with the following keys:\n"
+    "  - 'question': string,\n"
+    "  - 'options': { 'A': str, 'B': str, 'C': str, 'D': str },\n"
+    "  - 'answer': 'A' | 'B' | 'C' | 'D',\n"
+    "  - 'explanation': string (explain the logic behind the answer clearly)\n\n"
+    "⚠️ Do not add any markdown or text outside the JSON. Ensure clean formatting and correct math."
     )
-
+    
     headers = {
-        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-        "Content-Type": "application/json",
-        "HTTP-Referer": "http://localhost"
+        "Authorization": f"Bearer {GROQ_API_KEY}",
+        "Content-Type": "application/json"
     }
 
     payload = {
@@ -38,17 +44,16 @@ def generate_question(topic: str, level: str ="medium",previous_questions: list 
             {"role": "system", "content": "You are a helpful quiz generator for aptitude topics.Always verify your calculations before providing answers."},
             {"role": "user", "content": prompt}
         ],
-        "temperature": 0.8,
+        "temperature": 0.7,
         "max_tokens":500
     }
 
     try:
-        response = requests.post(OPENROUTER_API_URL, headers=headers, json=payload)
+        response = requests.post(GROQ_URL, headers=headers, json=payload)
         response.raise_for_status()
         result = response.json()
         raw_output = result['choices'][0]['message']['content']
         
-        import json
         question_data = json.loads(raw_output)
         return question_data
 
